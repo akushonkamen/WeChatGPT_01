@@ -68,9 +68,11 @@ class Role(Plugin):
                     max_role = role
             found_role = max_role
         return found_role
-
+    
+   
+    
     def on_handle_context(self, e_context: EventContext):
-
+        global clist
         if e_context['context'].type != ContextType.TEXT:
             return
         bottype = Bridge().get_bot_type("chat")
@@ -91,28 +93,55 @@ class Role(Plugin):
             return
         elif clist[0] == "$角色":
             desckey = "descn"
+        elif clist[0] == "$角色类型":
+            desckey = "type" 
+        elif clist[0] == "$role type":
+            desckey = "type" 
         elif clist[0].lower() == "$role":
             desckey = "description"
         elif sessionid not in self.roleplays:
             return
         logger.debug("[Role] on_handle_context. content: %s" % content)
         if desckey is not None:
-            if len(clist) == 1 or (len(clist) > 1 and clist[1].lower() in ["help", "帮助"]):
+            role = self.get_role(clist[1])
+
+            if ((clist[0] == "$角色类型") and clist[1].lower() in ["help", "帮助"]):
+                reply = Reply(ReplyType.INFO, self.get_help_text_type())
+                e_context['reply'] = reply
+                e_context.action = EventAction.BREAK_PASS
+                return
+            elif ((clist[0] == "$角色") and clist[1].lower() in ["help", "帮助"]):
                 reply = Reply(ReplyType.INFO, self.get_help_text())
                 e_context['reply'] = reply
                 e_context.action = EventAction.BREAK_PASS
                 return
-            role = self.get_role(clist[1])
-            if role is None:
-                reply = Reply(ReplyType.ERROR, "角色不存在")
-                e_context['reply'] = reply
-                e_context.action = EventAction.BREAK_PASS
+            
+            
+            
+            
+            if clist[0] == "$角色类型":
+                
+                if role is None:
+                    reply = Reply(ReplyType.ERROR, "角色类别不存在")
+                    e_context['reply'] = reply
+                    e_context.action = EventAction.BREAK_PASS
+                    return
+                else:
+                    reply = Reply(ReplyType.INFO, self.get_help_text_1())
+                    e_context['reply'] = reply
+                    e_context.action = EventAction.BREAK_PASS
                 return
             else:
-                self.roleplays[sessionid] = RolePlay(bot, sessionid, self.roles[role][desckey], self.roles[role].get("wrapper","%s"))
-                reply = Reply(ReplyType.INFO, f"角色设定为 {role} :\n"+self.roles[role][desckey])
-                e_context['reply'] = reply
-                e_context.action = EventAction.BREAK_PASS
+                if role is None:
+                    reply = Reply(ReplyType.ERROR, "角色不存在")
+                    e_context['reply'] = reply
+                    e_context.action = EventAction.BREAK_PASS
+                    return
+                else:
+                    self.roleplays[sessionid] = RolePlay(bot, sessionid, self.roles[role][desckey], self.roles[role].get("wrapper","%s"))
+                    reply = Reply(ReplyType.INFO, f"角色设定为 {role} :\n"+self.roles[role][desckey])
+                    e_context['reply'] = reply
+                    e_context.action = EventAction.BREAK_PASS
         else:
             prompt = self.roleplays[sessionid].action(content)
             e_context['context'].type = ContextType.TEXT
@@ -123,4 +152,33 @@ class Role(Plugin):
         help_text = "输入\"$角色 {角色名}\"或\"$role {角色名}\"为我设定角色吧，\"$停止扮演 \" 可以清除设定的角色。\n\n目前可用角色列表：\n"
         for role in self.roles:
             help_text += f"[{role}]: {self.roles[role]['remark']}\n"
+        return help_text
+                              
+    def get_help_text_1(self, **kwargs):
+        global clist
+        help_text = "输入\"$角色 角色名\"或\"$role 角色名\"为我设定角色吧，\"$停止扮演 \" 可以清除设定的角色。\n\n本类型可用角色列表：\n"
+        for role in self.roles:
+            print(self.roles[role]['type'],clist[1])
+            if (self.roles[role]['type']==clist[1]):
+                help_text += f"[{role}]: {self.roles[role]['remark']}\n"
+        del clist
+        return help_text
+                              
+    def get_help_text_type(self, **kwargs):
+        help_text = "输入\"$角色类型 角色类型\"或\"$role type 角色类型\"浏览可用的角色类型下的角色。\n\n目前可用角色类型：\n"
+        types = []
+        
+        for ty in self.roles:
+            types.append(self.roles[ty]['type'])
+        
+        types = list(set(types))    
+        for ty in range(len(types)):
+            check_token = 0
+            for role in self.roles:
+              if check_token == 0:
+                if self.roles[role]['type'] == types[ty]:
+                    help_text += f"[{types[ty]}]: {self.roles[role]['remark_type']}\n"
+                    check_token = 1
+            
+     
         return help_text

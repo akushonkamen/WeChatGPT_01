@@ -53,7 +53,6 @@ class SDWebUI(Plugin):
                 prompt = ""
 
             keywords = keywords.split()
-
             if "help" in keywords or "帮助" in keywords:
                 reply.type = ReplyType.INFO
                 reply.content = self.get_help_text()
@@ -73,19 +72,23 @@ class SDWebUI(Plugin):
                             break  # 一个关键词只匹配一个规则
                     if not matched:
                         logger.warning("[SD] keyword not matched: %s" % keyword)
-                
                 params = {**self.default_params, **rule_params}
                 options = {**self.default_options, **rule_options}
                 params["prompt"] = params.get("prompt", "")+f", {prompt}"
+                print(options)
                 if len(options) > 0:
                     logger.info("[SD] cover options={}".format(options))
                     self.api.set_options(options)
+                print(5)
                 logger.info("[SD] params={}".format(params))
+                print(6)
                 result = self.api.txt2img(
                     **params
                 )
+                print(7)
                 reply.type = ReplyType.IMAGE
                 b_img = io.BytesIO()
+                print(8)
                 result.image.save(b_img, format="PNG")
                 reply.content = b_img
             e_context.action = EventAction.BREAK_PASS  # 事件结束后，跳过处理context的默认逻辑
